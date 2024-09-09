@@ -6,25 +6,40 @@ from PIL import Image
 import numpy as np
 import sys
 import time
+from config.file_config import MUJOCO_MODELS_LOC
+import yaml
+from easydict import EasyDict as edict
 
-# Path to your main XML file (which includes the robot and the scene)
-xml_path = '/home/nayaka/software/mujoco_menagerie/franka_fr3/scene.xml'
+
+def load_config(config_path):
+    with open(config_path, "r") as file:
+        config = yaml.safe_load(file)
+
+    return edict(config)
 
 
-# Load the model
-model = mujoco.MjModel.from_xml_path(xml_path)
-data = mujoco.MjData(model)
+def load_model(xml_path):
+
+    # Load the model
+    model = mujoco.MjModel.from_xml_path(xml_path)
+    data = mujoco.MjData(model)
+
+    return model, data
+
 
 def run_viewer(model, data):
 
     # Create a MuJoCo Viewer
     mujoco.viewer.launch_passive(model, data)
 
-def render_image(model, data, params):
-    debug = params['debug']
-    height = params['height']
-    width = params['width']
-    camera_names = params['cam_names']
+
+def render_image(model, data, img_idx, params):
+
+    # Load parameters from params
+    debug = params.debug
+    height = params.cameras.height
+    width = params.cameras.width
+    camera_names = params.cameras.cam_names
 
     cam_images = None
 
@@ -35,13 +50,10 @@ def render_image(model, data, params):
             img = renderer.render()
 
             if cam_images is None:
-                pdb.set_trace()
                 cam_images = img
             else:
-                # pdb.set_trace()
                 cam_images = np.hstack((cam_images, np.zeros((cam_images.shape[0], 10, 3))))
                 cam_images = np.hstack((cam_images, img))
-
 
         if debug:
             result = Image.fromarray((cam_images).astype(np.uint8))
@@ -51,29 +63,33 @@ def render_image(model, data, params):
         return cam_images
 
 
-params = {'debug': False, 'height': 720, 'width': 720, 'cam_names': ['ext_cam', 'd435i_camera']} #TODO Separate file
+if __name__ == "__main__":
 
-img_idx = 0
+    config_path = 'config/render_config.yaml'
+    params = load_config(config_path)
 
-with mujoco.viewer.launch_passive(model, data) as viewer:
-    # viewer.user_scn.flags[mujoco.mjtRndFlag.mjRND_WIREFRAME] = 1
-    viewer.sync()
+    # Path to your main XML file (which includes the robot and the scene)
+    xml_path = f'{MUJOCO_MODELS_LOC}/franka_fr3/scene.xml'
 
+    # Mujoco model
+    model, data = load_model(xml_path)
 
-    while viewer.is_running():
-        step_start = time.time()
+    img_idx = 0
 
-
-        img_idx += 1
-
-
-        while time.time() - step_start < (1.0 / 1000):
-            mujoco.mj_step(model, data)
-
+    with mujoco.viewer.launch_passive(model, data) as viewer:
+        # viewer.user_scn.flags[mujoco.mjtRndFlag.mjRND_WIREFRAME] = 1
         viewer.sync()
 
-        cur_image = render_image(model, data, params=params)
+        while viewer.is_running():
+            step_start = time.time()
 
+            while time.time() - step_start < (1.0 / 1000):
+                mujoco.mj_step(model, data)
 
+            viewer.sync()
 
-        data.ctrl[-1] = 255
+            cur_image = render_image(model, data, img_idx, params=params)
+            img_idx += 1
+
+            # Update control parameters like this! TODO
+            data.ctrl[-1] = 255
