@@ -58,7 +58,7 @@ def render_image(model, data, img_idx, params):
         if debug:
             result = Image.fromarray((cam_images).astype(np.uint8))
 
-            result.save(f'cam_images_{img_idx}.jpg')
+            result.save(f'debug/cam_images_{img_idx}.jpg')
 
         return cam_images
 
