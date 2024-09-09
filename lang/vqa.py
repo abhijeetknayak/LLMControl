@@ -1,7 +1,7 @@
 from openai import OpenAI
 import base64
 import requests
-from config.config import api_key
+from config.file_config import API_KEY
 
 # Function to encode the image
 def encode_image(image_path):
@@ -10,7 +10,7 @@ def encode_image(image_path):
 
 def send_request(image):
 
-    client = OpenAI(api_key=api_key)
+    client = OpenAI(api_key=API_KEY)
 
 
     # OpenAI API Key
