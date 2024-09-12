@@ -33,7 +33,7 @@ def run_viewer(model, data):
     mujoco.viewer.launch_passive(model, data)
 
 
-def render_image(model, data, img_idx, params):
+def render_image(model, data, params):
 
     # Load parameters from params
     debug = params.debug
@@ -58,7 +58,7 @@ def render_image(model, data, img_idx, params):
         if debug:
             result = Image.fromarray((cam_images).astype(np.uint8))
 
-            result.save(f'debug/cam_images_{img_idx}.jpg')
+            result.save(f'debug/cam_images.jpg')
 
         return cam_images
 
@@ -74,7 +74,7 @@ if __name__ == "__main__":
     # Mujoco model
     model, data = load_model(xml_path)
 
-    img_idx = 0
+
 
     with mujoco.viewer.launch_passive(model, data) as viewer:
         # viewer.user_scn.flags[mujoco.mjtRndFlag.mjRND_WIREFRAME] = 1
@@ -88,8 +88,15 @@ if __name__ == "__main__":
 
             viewer.sync()
 
-            cur_image = render_image(model, data, img_idx, params=params)
-            img_idx += 1
+            cur_image = render_image(model, data, params=params)
 
             # Update control parameters like this! TODO
-            data.ctrl[-1] = 255
+
+            for i in range(20):
+                pdb.set_trace()
+                data.ctrl[0] += 0.1
+                print(data.ctrl)
+                
+                mujoco.mj_step(model, data)
+                viewer.sync()
+
