@@ -40,12 +40,16 @@ def render_image(model, data, params):
     height = params.cameras.height
     width = params.cameras.width
     camera_names = params.cameras.cam_names
+    skip_cam = params.skip_cam
 
-    cam_images = None
+    start_image_path = "/home/nayaka/Desktop/LLMControl/debug/start_image.jpg"
+    cam_images = np.array(Image.open(start_image_path))
 
     with mujoco.Renderer(model, height, width) as renderer:
 
         for i in range(len(camera_names)):
+            if camera_names[i] in skip_cam:
+                continue
             renderer.update_scene(data, camera=camera_names[i])
             img = renderer.render()
 
@@ -92,11 +96,11 @@ if __name__ == "__main__":
 
             # Update control parameters like this! TODO
 
-            for i in range(20):
-                pdb.set_trace()
-                data.ctrl[0] += 0.1
-                print(data.ctrl)
+            # for i in range(20):
+            #     pdb.set_trace()
+            #     data.ctrl[0] += 0.1
+            #     print(data.ctrl)
                 
-                mujoco.mj_step(model, data)
-                viewer.sync()
+            #     mujoco.mj_step(model, data)
+            #     viewer.sync()
 

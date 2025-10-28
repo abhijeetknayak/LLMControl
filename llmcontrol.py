@@ -22,18 +22,20 @@ def initialize_content(data, image):
     Actuator 6 - Wrist Joint Flexion/Extension: Range 0.54 to 4.52 radians,
     Actuator 7 - Wrist Joint Rotation of End Effector: Range -3.02 to 3.02 radians,
     Actuator 8 - Combined Finger Actuator: Range 0 to 255 (0 is fully closed, 255 is fully open),
-    The current values of all actuators are  {data.ctrl}. Relate these actuators with the image I have provided.
-    The image consists of an external view on the left and the eye-in-hand camera image on the right. The goal of this task is to grasp the red cube.
-    Everytime I query you from now on, you need to analyze the current locations of all the joints and provide me with an incremental movement to achieve the end goal.
+    Image Info: The image I provide consists of two images: on the left an initial external view of the robot arm to understand about the joints and on the right, 
+    an external view of the robot in its current state. The current values of all actuators are  {data.qpos[0:8]}. Relate these actuators with the image I have provided.
+    Your goal: The goal of this task is to grasp the red cube.
+    What I want from you: Everytime I query you from now on, you need to analyze the current locations of all the joints in the image on the right side and provide me with an incremental movement to achieve the end goal.
     I want you to provide a single, simple statement stating which joint(only one) you would actuate for the incremental motion. Also analyze the range of values and 
     the current value of the actuators and give me a floating point value for each motion. Keep in mind I want an incremental motion, so it is still okay if you actuate only one joint. The output should be in the format [actuator number]:[predicted value] separated 
     by commas if there are multiple joints to be actuated. Just give me this, no other text.
-    Also, when you give an incremental actuation, make sure that the change in actuation value should be lesser than 20%.
     """
 
     # image_path = "/home/nayaka/Desktop/LLMControl/start_img.jpg"
 
     response = send_request(prompt, image_data=image)
+
+    pdb.set_trace()
 
     return response
 
@@ -58,7 +60,7 @@ def decode_api_response(response):
 
     content = response_json.choices[0].message.content
 
-    pattern = r'(\d+):\s*([-\d.]+)'
+    pattern = r'\[?(\d+)\]?:\s*\[?([-\d.]+)\]?'
 
     matches = re.findall(pattern, content)
 
@@ -134,7 +136,9 @@ def run_robot_control_loop():
                 apply_action(model, data, viewer, initial_action)
                 viewer.sync()
                 
-                INITIALIZED = True
+                # INITIALIZED = True
+
+            continue
 
             step_start = time.time()
 
@@ -144,12 +148,15 @@ def run_robot_control_loop():
             viewer.sync()
 
             cur_image = render_image(model, data, params=params)
+
+            # save_image(cur_image, "")
             base64_img = encode_image_for_openai(cur_image)
 
-            text_prompt = f""" I am at the current state as shown in the image. My goal still is to grasp the red cube.
-            The current joint actuation values are {data.qpos[0:8]}. What will be joint that I should actuate for an incremental action to grasp the cube?
-            Analyze the stitched images and reason about which joint movement could bring the end-effctor closer to the red cube.
-            Always use the output format mentioned before! And always provide incremental actuations! Do not repeat the last actuation you asked me to apply."""
+            text_prompt = f""" I am at the current state as shown in the new image. Analyze this image and the joint locations. The goal still is to grasp the red cube.
+            The current joint actuation values are {data.qpos[0:8]}. You already have information about all the joints and the range of values they take.
+            So, I want to ask you which joint should I actuate for an incremental action to grasp the cube?
+            Analyze the provided image and reason about which joint movement could bring the end-effctor closer to the red cube.
+            Stick to the output format mentioned before! Do not repeat the last actuation you asked me to apply."""
 
             response = send_request(text_info=text_prompt, image_data=base64_img)
             new_action = decode_api_response(response)

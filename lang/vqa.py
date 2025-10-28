@@ -18,7 +18,7 @@ def create_headers_payload(api_key, text_content, image_content):
     }
 
     payload = {
-      "model": "gpt-4o-mini",
+      "model": "gpt-4o",
       "messages": [
         {
           "role": "user",
